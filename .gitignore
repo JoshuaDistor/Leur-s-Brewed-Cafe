@@ -1,4 +1,4 @@
 git add .
 git commit -m "Initial commit"
-git remote add origin https://github.com/Kaibo Saido/leurs-cafe.git
+git remote add origin https://github.com/JoshuaDistor/Leur-s-Brewed-Cafe
 git push -u origin main
