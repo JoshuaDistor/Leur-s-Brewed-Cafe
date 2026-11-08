@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<title>Your order - Leur's Brewed Cafe</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#3b271c">
+<link rel="icon" type="image/jpeg" href="img/logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head><body>
+<div class="page">
+  <header class="topbar" id="topbar"></header>
+  <div class="row g-3 mt-1 pb-5">
+    <div class="col-lg-7">
+      <section class="cafe-card p-4 h-100" id="details"></section>
+    </div>
+    <div class="col-lg-5 d-flex flex-column gap-3">
+      <section class="cafe-card p-4" id="checkout"></section>
+      <section class="cafe-card p-4">
+        <h3 class="text-center h4 mb-0">Order tracker</h3>
+        <div class="tracker" id="tracker"></div>
+        <p class="text-center small text-secondary mb-0" id="trackerNote">Place an order to start tracking it here.</p>
+      </section>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+const FEE = 10;
+let menuItems = [], cart = [], payment = '', latest = null, myOrders = [], user;
+const $ = (id) => document.getElementById(id);
+const itemId = new URLSearchParams(location.search).get('item');
+
+/* ---- cart: lives in sessionStorage so it survives going back to the menu ---- */
+const CART_KEY = 'leurs-cart';
+const saveCart = () => { try { sessionStorage.setItem(CART_KEY, JSON.stringify({ cart: cart.map(({ itemId, qty, note }) => ({ itemId, qty, note })), payment })); } catch (e) {} };
+function loadCart() {
+  try {
+    const d = JSON.parse(sessionStorage.getItem(CART_KEY)) || {};
+    payment = d.payment || '';
+    cart = (d.cart || []).map(l => ({ ...l, item: menuItems.find(m => m.id === l.itemId) })).filter(l => l.item);
+  } catch (e) { cart = []; }
+}
+const cartCount = () => cart.length;
+const subtotal = () => cart.reduce((t, l) => t + l.item.price * l.qty, 0);
+const fees = () => cart.length * FEE;
+
+function drawDetails() {
+  const lines = cart.map((l, i) => `
+    <div class="cart-line ${i ? 'pt-4 mt-4 border-top' : ''}" data-i="${i}">
+      <div class="row g-3">
+        <div class="col-sm-5"><img class="order-photo" src="${img(l.item.image)}" alt="${esc(l.item.name)}"></div>
+        <div class="col-sm-7"><label class="form-label cafe">Drinks modification</label>
+          <textarea class="form-control note" rows="6" maxlength="200" placeholder="Less sweet, please.">${esc(l.note)}</textarea></div>
+      </div>
+      <h2 class="mt-3 mb-1">${esc(l.item.name)}</h2>
+      <p class="fw-semibold small text-secondary mb-3">${esc(l.item.description)}</p>
+      <div class="rule mb-3" style="max-width:340px"></div>
+      <label class="form-label cafe d-block">Quantity</label>
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="qty"><button type="button" class="minus" aria-label="Decrease">−</button><span class="fw-bold">${l.qty}</span><button type="button" class="plus" aria-label="Increase">+</button></div>
+        <button type="button" class="btn btn-link text-secondary btn-sm remove">Remove</button>
+      </div>
+    </div>`).join('');
+  const recent = myOrders.length ? `
+    <h3 class="h6 fw-bold mt-4">Your recent orders</h3>
+    ${myOrders.slice(0, 6).map(o => `
+      <div class="d-flex align-items-center gap-3 py-2 border-bottom">
+        <img src="${img(o.image)}" width="46" height="46" class="rounded object-fit-cover flex-shrink-0" alt="">
+        <div class="order-info"><div class="fw-bold small">${esc(o.itemName)} × ${o.qty}</div>
+          <div class="text-secondary" style="font-size:.72rem">${new Date(o.created).toLocaleString()}</div></div>
+        <span class="status-badge st-${o.status} flex-shrink-0">${o.status}</span>
+      </div>`).join('')}` : '';
+  $('details').innerHTML = `
+    <h3 class="h6 fw-bold mb-3">Order details</h3>
+    ${cart.length ? lines : '<p class="text-secondary">No drink selected yet.</p>'}
+    <div class="text-end mt-3 d-flex justify-content-end gap-2 flex-wrap">
+      ${cart.length ? '<a class="btn btn-outline-cafe btn-sm px-3" href="menu.html">Add another drink</a>' : ''}
+      <a class="btn btn-outline-cafe btn-sm px-3" href="menu.html">Browse menu</a>
+    </div>
+    ${recent}`;
+  document.querySelectorAll('.cart-line').forEach(el => {
+    const l = cart[Number(el.dataset.i)];
+    el.querySelector('.note').oninput = (e) => { l.note = e.target.value; saveCart(); };
+    el.querySelector('.minus').onclick = () => { if (l.qty > 1) { l.qty--; saveCart(); drawDetails(); drawCheckout(); } };
+    el.querySelector('.plus').onclick = () => { if (l.qty < 20) { l.qty++; saveCart(); drawDetails(); drawCheckout(); } };
+    el.querySelector('.remove').onclick = () => { cart.splice(Number(el.dataset.i), 1); saveCart(); drawDetails(); drawCheckout(); };
+  });
+}
+
+function drawCheckout() {
+  const sub = subtotal(), fee = fees();
+  $('checkout').innerHTML = `
+    <h3 class="h6 fw-bold mb-3">Checkout</h3>
+    <label class="form-label cafe" for="payment">Payment method</label>
+    <select class="form-select form-select-sm mb-3" id="payment">
+      <option value="">Select mode of payment</option>
+      ${['Cash', 'GCash', 'Maya', 'Credit / Debit card'].map(p => `<option ${p === payment ? 'selected' : ''}>${p}</option>`).join('')}
+    </select>
+    <div class="sum-row"><span>Subtotal${cart.length > 1 ? ` (${cart.length} drinks)` : ''}</span><span class="amt">${peso(sub)}</span></div>
+    <div class="sum-row"><span>Service fee</span><span class="amt">${peso(fee)}</span></div>
+    <div class="sum-row fw-bold"><span>Total</span><span class="amt">${peso(sub + fee)}</span></div>
+    <div class="row g-2 mt-2">
+      <div class="col-6"><button class="btn btn-outline-cafe w-100" id="cancel" ${canCancel() ? '' : 'disabled'}>Cancel order</button></div>
+      <div class="col-6"><button class="btn btn-espresso w-100" id="confirm" ${cart.length ? '' : 'disabled'}>Confirm order</button></div>
+    </div>`;
+  $('payment').onchange = () => { payment = $('payment').value; saveCart(); };
+  $('confirm').onclick = confirmOrder;
+  $('cancel').onclick = cancelOrder;
+}
+const canCancel = () => cart.length > 0 || (latest && latest.status === 'PLACED');
+
+async function confirmOrder() {
+  if (!payment) { toast('Please select a mode of payment.', true); return; }
+  const btn = $('confirm'); btn.disabled = true;
+  let placed = 0;
+  try {
+    for (const l of [...cart]) {
+      const o = await API.post('/api/orders', { itemId: l.item.id, qty: l.qty, note: l.note, payment });
+      myOrders.unshift(o); latest = o; placed++;
+      cart.splice(cart.indexOf(l), 1);
+    }
+    payment = ''; saveCart();
+    toast(placed > 1 ? `${placed} drinks ordered! We're on it.` : 'Order placed! We\'re on it.');
+  } catch (e) { saveCart(); toast(e.message, true); }
+  drawDetails(); drawCheckout(); drawTracker();
+}
+async function cancelOrder() {
+  if (cart.length) { cart = []; payment = ''; saveCart(); toast('Cart cleared.'); drawDetails(); drawCheckout(); return; }
+  try { await API.del('/api/orders/' + latest.id); toast('Order cancelled.'); await refresh(); } catch (e) { toast(e.message, true); }
+}
+
+const STEPS = [['PLACED', '!', 'Placed'], ['PREPARING', '◔', 'Preparing'], ['READY', '✓', 'Ready']];
+function drawTracker() {
+  const idx = latest ? STEPS.findIndex(s => s[0] === latest.status) : -1;
+  $('tracker').innerHTML = STEPS.map((s, i) => `
+    ${i ? `<div class="bar ${i <= idx ? 'done' : ''}"></div>` : ''}
+    <div class="step ${i < idx || (idx === 2 && i === 2) ? 'done' : i === idx ? 'current' : ''}"><div class="dot">${s[1]}</div>${s[2]}</div>`).join('');
+  $('trackerNote').textContent = !latest ? 'Place an order to start tracking it here.'
+    : latest.status === 'CANCELLED' ? `Order #${latest.id} was cancelled.`
+    : latest.status === 'READY' ? `Order #${latest.id} (${latest.itemName}) is ready for pickup!`
+    : `Order #${latest.id}: ${latest.itemName} × ${latest.qty}`;
+}
+
+async function refresh() {
+  myOrders = await API.get('/api/orders');
+  latest = myOrders[0] || null;
+  drawDetails(); drawCheckout(); drawTracker();
+}
+
+(async () => {
+  user = await requireUser('customer'); if (!user) return;
+  renderCustomerNav('Your order', 'orders', user);
+  try {
+    menuItems = await API.get('/api/menu');
+    loadCart();
+    if (itemId) {
+      const it = menuItems.find(i => i.id === Number(itemId));
+      if (!it) toast('That drink is no longer available.', true);
+      else {
+        const same = cart.find(l => l.item.id === it.id && !l.note);
+        if (same) same.qty = Math.min(20, same.qty + 1); else cart.push({ itemId: it.id, item: it, qty: 1, note: '' });
+        saveCart();
+      }
+      window.history.replaceState({}, '', 'order.html');   // refresh won't add it again
+    }
+    myOrders = await API.get('/api/orders'); latest = myOrders[0] || null;
+  } catch (e) { toast(e.message, true); }
+  drawDetails(); drawCheckout(); drawTracker();
+  setInterval(async () => {
+    if (document.hidden) return;
+    try { const h = await API.get('/api/orders'); myOrders = h; latest = h[0] || null; drawTracker();
+      if (!document.activeElement || !document.activeElement.classList.contains('note')) drawDetails(); } catch (e) {}
+  }, 5000);
+})();
+</script>
+</body></html>

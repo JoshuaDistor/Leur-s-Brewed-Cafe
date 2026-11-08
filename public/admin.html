@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<title>Admin - Leur's Brewed Cafe</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#3b271c">
+<link rel="icon" type="image/jpeg" href="img/logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head><body>
+<div class="page pb-5">
+  <header class="topbar">
+    <a class="brand" href="admin.html"><img src="img/logo.jpg" alt="Leur's cafe logo"><h1 id="pageTitle">Sales report</h1></a>
+    <button class="logout-link" onclick="logout()">LogOut</button>
+  </header>
+  <div class="d-flex flex-wrap gap-2 my-3">
+    <button class="tab-btn" data-tab="sales">Sales Report</button>
+    <button class="tab-btn" data-tab="accounts">Account Management</button>
+    <button class="tab-btn" data-tab="menu">Menu Management</button>
+    <a class="btn-add-top d-none align-self-center" id="addItemBtn" href="add-item.html">+ ADD MENU ITEM</a>
+  </div>
+
+  <!-- SALES -->
+  <section id="tab-sales" class="d-none">
+    <div class="row g-3 mb-3" id="stats"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-lg-7"><div class="cafe-card p-4 h-100"><h2 class="h3 mb-3">Top sellers today</h2><div id="sellers" class="d-grid gap-3"></div></div></div>
+      <div class="col-lg-5"><div class="big-count"><div class="text-center"><div class="n" id="bigCount">0</div><div class="opacity-75">customer orders today</div></div><div class="emoji-big" aria-hidden="true">☕</div></div></div>
+    </div>
+    <div class="cafe-card p-4">
+      <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h4 mb-0">Live orders</h2><button class="btn-mini" id="reloadOrders">Refresh</button></div>
+      <div class="table-responsive"><table class="table cafe-table stack-table mb-0"><thead><tr><th>#</th><th>Customer</th><th>Item</th><th>Total</th><th>Payment</th><th>Status</th></tr></thead><tbody id="orderRows"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ACCOUNTS -->
+  <section id="tab-accounts" class="d-none">
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <input class="form-control search-input" id="accSearch" placeholder="Search username or email">
+      <button class="btn-mini ms-auto align-self-center" id="reloadAcc">Refresh</button>
+      <button class="btn btn-espresso" id="addAcc" style="padding:.55rem 1.2rem">+ ADD ACCOUNT</button>
+    </div>
+    <div class="cafe-card p-4"><div class="table-responsive"><table class="table cafe-table stack-table mb-0">
+      <thead><tr><th>Email</th><th>Password</th><th>Username</th><th>Role</th><th class="text-end">Actions</th></tr></thead><tbody id="accRows"></tbody></table></div></div>
+  </section>
+
+  <!-- MENU -->
+  <section id="tab-menu" class="d-none">
+    <div class="cafe-card p-3 mb-3 d-flex flex-wrap gap-2 align-items-center"><span class="small text-secondary me-2">Categories</span><span id="adminPills" class="d-flex flex-wrap gap-2"></span></div>
+    <div class="cafe-card p-4"><div class="table-responsive"><table class="table cafe-table stack-table mb-0">
+      <thead><tr><th>Item</th><th>Price</th><th>Status</th><th class="text-end">Actions</th></tr></thead><tbody id="itemRows"></tbody></table></div></div>
+  </section>
+</div>
+
+<!-- account modal -->
+<div class="modal fade" id="accModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form class="modal-content cafe-card" id="accForm">
+  <div class="modal-body p-4"><h3 class="h5 mb-3" id="accModalTitle">Account</h3>
+    <div class="mb-3"><label class="form-label cafe">Email</label><input class="form-control" id="aEmail" type="email" required></div>
+    <div class="mb-3"><label class="form-label cafe">Username</label><input class="form-control" id="aUser" required></div>
+    <div class="mb-3"><label class="form-label cafe">Password</label><input class="form-control" id="aPass" type="password" autocomplete="new-password"><div class="form-text" id="aPassHint"></div></div>
+    <div class="d-flex gap-2 justify-content-end"><button type="button" class="btn btn-tan" data-bs-dismiss="modal">Cancel</button><button class="btn btn-caramel" style="padding:.5rem 1.4rem">Save</button></div></div>
+</form></div></div>
+<!-- item modal -->
+<div class="modal fade" id="itemModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form class="modal-content cafe-card" id="itemForm">
+  <div class="modal-body p-4"><h3 class="h5 mb-3">Edit menu item</h3>
+    <div class="mb-3"><label class="form-label cafe">Item name</label><input class="form-control" id="iName" required></div>
+    <div class="row g-3 mb-3"><div class="col-sm-6"><label class="form-label cafe">Price (₱)</label><input class="form-control" id="iPrice" type="number" min="0" step="1" required></div>
+      <div class="col-sm-6"><label class="form-label cafe">Category</label><select class="form-select" id="iCat"></select></div></div>
+    <div class="mb-3"><label class="form-label cafe">Description</label><textarea class="form-control" id="iDesc" rows="2"></textarea></div>
+    <div class="d-flex gap-2 justify-content-end"><button type="button" class="btn btn-tan" data-bs-dismiss="modal">Cancel</button><button class="btn btn-caramel" style="padding:.5rem 1.4rem">Save</button></div></div>
+</form></div></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const CATS = ['Iced Coffee', 'Hot Coffee', 'Matcha', 'Frappe', 'Non-Coffee', 'Fritz & Fizz'];
+const TITLES = { sales: 'Sales report', accounts: 'Account management', menu: 'Menu management' };
+let me, accounts = [], menuItems = [], menuCat = CATS[0], editingAcc = null, editingItem = null;
+const accModal = () => bootstrap.Modal.getOrCreateInstance($('accModal'));
+const itemModal = () => bootstrap.Modal.getOrCreateInstance($('itemModal'));
+const guard = (fn) => async (...a) => { try { await fn(...a); } catch (e) { if (e.status === 401 || e.status === 403) location.href = 'login.html'; else toast(e.message, true); } };
+
+function showTab(t) {
+  if (!TITLES[t]) t = 'sales';
+  location.hash = t; $('pageTitle').textContent = TITLES[t];
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  ['sales', 'accounts', 'menu'].forEach(x => $('tab-' + x).classList.toggle('d-none', x !== t));
+  $('addItemBtn').classList.toggle('d-none', t !== 'menu');
+  ({ sales: loadSales, accounts: loadAccounts, menu: loadMenu })[t]();
+}
+document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+
+/* ---------- sales ---------- */
+const loadSales = guard(async () => {
+  const r = await API.get('/api/admin/report');
+  const stat = (k, v, cls, sub) => `<div class="col-6 col-lg-3"><div class="cafe-card stat"><div class="k">${k}</div><div class="v ${cls || ''}">${v}</div><div class="small text-secondary">${sub}</div></div></div>`;
+  $('stats').innerHTML = stat("Today's revenue", peso(r.revenue), 'accent', 'Today') + stat('Orders', r.orders, '', 'Today') + stat('Avg. order', peso(r.avg.toFixed(2)), '', 'Per order') + stat('Menu items', r.menuItems, '', 'On the menu');
+  const max = Math.max(1, ...r.topSellers.map(s => s.orders));
+  $('sellers').innerHTML = r.topSellers.length ? r.topSellers.map(s => `<div class="seller"><div class="nm"><span>${esc(s.name)}</span><span class="text-secondary fw-normal">${s.orders} orders</span></div><div class="track"><div class="fill" style="width:${s.orders / max * 100}%"></div></div></div>`).join('') : '<p class="text-secondary mb-0">No orders yet today.</p>';
+  $('bigCount').textContent = r.orders;
+  await loadOrders();
+});
+const loadOrders = guard(async () => {
+  const list = await API.get('/api/admin/orders');
+  $('orderRows').innerHTML = list.map(o => `<tr><td data-label="#">${o.id}</td><td data-label="Customer">${esc(o.user)}</td><td data-label="Item">${esc(o.itemName)} × ${o.qty}</td><td data-label="Total">${peso(o.total)}</td><td data-label="Payment">${esc(o.payment)}</td>
+    <td data-label="Status"><select class="form-select form-select-sm st-${o.status}" data-id="${o.id}" style="max-width:150px;font-weight:700">${['PLACED', 'PREPARING', 'READY', 'CANCELLED'].map(s => `<option ${s === o.status ? 'selected' : ''}>${s}</option>`).join('')}</select></td></tr>`).join('') || '<tr class="empty-row"><td colspan="6" class="text-center text-secondary">No orders yet.</td></tr>';
+});
+$('orderRows').addEventListener('change', guard(async (e) => {
+  const s = e.target.closest('select'); if (!s) return;
+  await API.post(`/api/admin/orders/${s.dataset.id}/status`, { status: s.value }); toast('Order #' + s.dataset.id + ' → ' + s.value); loadSales();
+}));
+$('reloadOrders').onclick = loadSales;
+
+/* ---------- accounts ---------- */
+const loadAccounts = guard(async () => {
+  accounts = await API.get('/api/admin/accounts?q=' + encodeURIComponent($('accSearch').value));
+  $('accRows').innerHTML = accounts.map(a => `<tr><td class="cell-title">${esc(a.email)}</td><td data-label="Password" class="text-secondary">••••••••</td><td data-label="Username" class="text-warning-emphasis" style="color:var(--caramel)!important">${esc(a.username)}</td><td data-label="Role">${esc(a.role)}</td>
+    <td class="text-end text-nowrap cell-actions"><button class="btn-mini me-1" data-edit="${a.id}">Edit</button><button class="btn-mini" data-del="${a.id}" ${a.id === me.id ? 'disabled' : ''}>Delete</button></td></tr>`).join('') || '<tr class="empty-row"><td colspan="5" class="text-center text-secondary">No accounts found.</td></tr>';
+});
+$('reloadAcc').onclick = loadAccounts;
+/* new registrations show up automatically */
+setInterval(() => { if (!document.hidden && location.hash === '#accounts' && document.activeElement !== $('accSearch') && !document.querySelector('.modal.show')) loadAccounts(); }, 5000);
+let t; $('accSearch').addEventListener('input', () => { clearTimeout(t); t = setTimeout(loadAccounts, 250); });
+$('addAcc').onclick = () => { editingAcc = null; $('accModalTitle').textContent = 'Add account'; $('aEmail').value = $('aUser').value = $('aPass').value = ''; $('aPass').required = true; $('aPassHint').textContent = 'At least 6 characters.'; accModal().show(); };
+$('accRows').addEventListener('click', guard(async (e) => {
+  const ed = e.target.closest('[data-edit]'), dl = e.target.closest('[data-del]');
+  if (ed) { editingAcc = accounts.find(a => a.id == ed.dataset.edit); $('accModalTitle').textContent = 'Edit account'; $('aEmail').value = editingAcc.email; $('aUser').value = editingAcc.username; $('aPass').value = ''; $('aPass').required = false; $('aPassHint').textContent = 'Leave blank to keep the current password.'; accModal().show(); }
+  if (dl && confirm('Delete this account?')) { await API.del('/api/admin/accounts/' + dl.dataset.del); toast('Account deleted.'); loadAccounts(); }
+}));
+$('accForm').addEventListener('submit', guard(async (e) => {
+  e.preventDefault();
+  const data = { email: $('aEmail').value, username: $('aUser').value, password: $('aPass').value };
+  await API.post(editingAcc ? '/api/admin/accounts/' + editingAcc.id : '/api/admin/accounts', data);
+  accModal().hide(); toast('Account saved.'); loadAccounts();
+}));
+
+/* ---------- menu ---------- */
+const loadMenu = guard(async () => {
+  menuItems = await API.get('/api/admin/menu');
+  $('adminPills').innerHTML = CATS.map(c => `<button class="pill ${c === menuCat ? 'active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
+  $('itemRows').innerHTML = menuItems.filter(i => i.category === menuCat).map(i => `<tr><td class="cell-title">${esc(i.name)}</td><td data-label="Price" style="color:var(--caramel)">${peso(i.price)}</td>
+    <td data-label="Status"><div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" data-toggle="${i.id}" ${i.available ? 'checked' : ''} aria-label="Available"></div></td>
+    <td class="text-end text-nowrap cell-actions"><button class="btn-mini me-1" data-edit="${i.id}">Edit</button><button class="btn-mini" data-del="${i.id}">Delete</button></td></tr>`).join('') || '<tr class="empty-row"><td colspan="4" class="text-center text-secondary">No items in this category.</td></tr>';
+});
+$('adminPills').addEventListener('click', (e) => { const b = e.target.closest('.pill'); if (b) { menuCat = b.dataset.cat; loadMenu(); } });
+$('itemRows').addEventListener('click', guard(async (e) => {
+  const ed = e.target.closest('[data-edit]'), dl = e.target.closest('[data-del]'), tg = e.target.closest('[data-toggle]');
+  if (tg) { await API.post('/api/admin/menu/' + tg.dataset.toggle, { available: tg.checked }); toast(tg.checked ? 'Item is now available.' : 'Item hidden from the menu.'); }
+  if (ed) { editingItem = menuItems.find(i => i.id == ed.dataset.edit); $('iName').value = editingItem.name; $('iPrice').value = editingItem.price; $('iCat').value = editingItem.category; $('iDesc').value = editingItem.description; itemModal().show(); }
+  if (dl && confirm('Delete this menu item?')) { await API.del('/api/admin/menu/' + dl.dataset.del); toast('Item deleted.'); loadMenu(); }
+}));
+$('itemForm').addEventListener('submit', guard(async (e) => {
+  e.preventDefault();
+  await API.post('/api/admin/menu/' + editingItem.id, { name: $('iName').value, price: $('iPrice').value, category: $('iCat').value, description: $('iDesc').value });
+  itemModal().hide(); toast('Item updated.'); loadMenu();
+}));
+
+(async () => {
+  me = await requireUser('admin'); if (!me) return;
+  const opts = CATS.map(c => `<option>${esc(c)}</option>`).join('');
+  $('iCat').innerHTML = opts;
+  const sc = sessionStorage.getItem('menuCat'); if (sc && CATS.includes(sc)) { menuCat = sc; sessionStorage.removeItem('menuCat'); }
+  const added = sessionStorage.getItem('menuAdded'); if (added) { sessionStorage.removeItem('menuAdded'); toast('“' + added + '” was added to the menu.'); }
+  showTab(location.hash.slice(1));
+})();
+</script>
+</body></html>

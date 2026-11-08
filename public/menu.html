@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<title>Menu - Leur's Brewed Cafe</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#3b271c">
+<link rel="icon" type="image/jpeg" href="img/logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head><body class="screen-fill">
+<div class="page">
+  <header class="topbar" id="topbar"></header>
+  <div class="menu-scroll" id="scroller">
+    <div class="pill-bar" id="pills"></div>
+    <div id="sections"><div class="h-rail" aria-hidden="true"><div class="skel-card"><div class="a skel"></div><div class="b"><span class="skel"></span><span class="skel"></span><span class="skel"></span></div></div><div class="skel-card"><div class="a skel"></div><div class="b"><span class="skel"></span><span class="skel"></span><span class="skel"></span></div></div><div class="skel-card"><div class="a skel"></div><div class="b"><span class="skel"></span><span class="skel"></span><span class="skel"></span></div></div></div></div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+const TITLES = { 'Iced Coffee': 'Iced Coffee (Espresso)', 'Hot Coffee': 'Hot Coffee (Espresso)', 'Matcha': 'Matcha Series', 'Frappe': 'Frappe Series', 'Non-Coffee': 'Non-Coffee Drinks', 'Fritz & Fizz': 'Fritz and Fizz' };
+const CATS = Object.keys(TITLES);
+let menu = [], current = 'All';
+
+function draw() {
+  document.getElementById('pills').innerHTML = ['All', ...CATS].map(c =>
+    `<button class="pill ${c === current ? 'active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
+  const cats = current === 'All' ? CATS : [current];
+  const html = cats.map(c => {
+    const list = menu.filter(i => i.category === c);
+    if (!list.length) return '';
+    return `<section id="sec-${CATS.indexOf(c)}"><h2 class="section-title">${esc(TITLES[c])}</h2>
+      <div class="rail-wrap">
+        <button type="button" class="rail-btn prev" aria-label="Scroll ${esc(c)} left" disabled>&#8249;</button>
+        <div class="h-rail" tabindex="0" role="region" aria-label="${esc(TITLES[c])} drinks">${list.map(i => `
+          <div class="rail-item"><article class="cafe-card drink-card">
+            <img class="photo" src="${img(i.image)}" alt="${esc(i.name)}" loading="lazy" decoding="async">
+            <div class="info"><h3>${esc(i.name)}</h3><p>${esc(i.description)}</p>
+              <div class="buy"><span class="price">${peso(i.price)}</span>
+                <a class="btn btn-tan btn-sm px-3" href="order.html?item=${i.id}">Select</a></div></div>
+          </article></div>`).join('')}</div>
+        <button type="button" class="rail-btn next" aria-label="Scroll ${esc(c)} right">&#8250;</button>
+      </div></section>`;
+  }).join('');
+  document.getElementById('sections').innerHTML = html || '<p class="empty">Nothing here yet.</p>';
+  document.querySelectorAll('.rail-wrap').forEach(w => {
+    const rail = w.querySelector('.h-rail'), prev = w.querySelector('.prev'), next = w.querySelector('.next');
+    const update = () => { prev.disabled = rail.scrollLeft < 4; next.disabled = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4; };
+    prev.onclick = () => rail.scrollBy({ left: -rail.clientWidth * 0.85, behavior: 'smooth' });
+    next.onclick = () => rail.scrollBy({ left: rail.clientWidth * 0.85, behavior: 'smooth' });
+    rail.addEventListener('scroll', update, { passive: true });
+    update();
+  });
+}
+window.addEventListener('resize', () => document.querySelectorAll('.rail-wrap .h-rail').forEach(r => r.dispatchEvent(new Event('scroll'))));
+
+document.getElementById('pills').addEventListener('click', (e) => {
+  const b = e.target.closest('.pill'); if (!b) return;
+  current = b.dataset.cat; draw(); document.getElementById('scroller').scrollTo({ top: 0 });
+});
+
+(async () => {
+  const user = await requireUser('customer'); if (!user) return;
+  renderCustomerNav('Welcome! Choose your coffee.', 'menu', user);
+  try { menu = await API.get('/api/menu'); draw(); } catch (e) { toast(e.message, true); }
+})();
+</script>
+</body></html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<title>Add menu item - Leur's Brewed Cafe</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#3b271c">
+<link rel="icon" type="image/jpeg" href="img/logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head><body>
+<div class="page pb-5">
+  <header class="topbar">
+    <a class="brand" href="admin.html#menu" aria-label="Back to menu management"><img src="img/logo.jpg" alt="Leur's cafe logo"></a>
+    <h1 class="add-title" id="pageTitle">+&nbsp; Add menu item</h1>
+  </header>
+
+  <form id="form" class="row g-3 mt-2" novalidate>
+    <div class="col-lg-5"><section class="pic-card">
+      <h2 class="mb-0">Item picture</h2>
+      <button type="button" class="upload-tile" id="tile" aria-label="Click to upload image">
+        <span id="placeholder">
+          <svg viewBox="0 0 120 120" fill="currentColor" aria-hidden="true">
+            <path d="M40 8c-6 6 6 10 0 18M58 8c-6 6 6 10 0 18" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+            <path d="M12 44h72v22c0 18-14 30-36 30S12 84 12 66V44z"/>
+            <path d="M84 50h10c10 0 16 5 16 12s-6 12-16 12h-10v-8h9c4 0 6-2 6-4s-2-4-6-4h-9z"/>
+            <rect x="6" y="104" width="88" height="7" rx="3.5"/>
+          </svg><br>Click to upload image
+        </span>
+        <img id="preview" alt="Preview of the chosen picture" class="d-none">
+        <span class="swap d-none" id="swap">Click to change picture</span>
+      </button>
+      <input type="file" id="file" accept="image/jpeg,image/png,image/webp" class="d-none">
+      <p class="small mt-3 mb-0 text-secondary">JPG, PNG or WebP. A portrait photo works best. If you skip this, the cafe logo is used.</p>
+    </section></div>
+
+    <div class="col-lg-7"><section class="detail-card">
+      <h2 class="mb-4">Item Details</h2>
+      <div class="mb-4"><label class="visually-hidden" for="name">Item name</label>
+        <input class="dark-field" id="name" maxlength="60" placeholder="Set Item name:" autocomplete="off"></div>
+      <div class="row g-3 mb-4">
+        <div class="col-md-6"><label class="visually-hidden" for="price">Price</label>
+          <input class="dark-field" id="price" type="number" min="0" step="1" inputmode="decimal" placeholder="Set price:"></div>
+        <div class="col-md-6"><label class="visually-hidden" for="category">Category</label>
+          <div class="select-wrap"><select class="dark-field" id="category"><option value="">Choose categories</option></select></div></div>
+      </div>
+      <label class="visually-hidden" for="desc">Description</label>
+      <textarea class="dark-field" id="desc" maxlength="300" rows="7" placeholder="Description:"></textarea>
+      <div class="char-count"><span id="count">0</span>/300</div>
+      <div id="error" class="alert alert-danger py-2 small mt-3 mb-0 d-none" role="alert"></div>
+      <div class="form-actions mt-3">
+        <a class="btn pill-btn cancel" href="admin.html#menu">Cancel</a>
+        <button class="btn pill-btn confirm" id="confirm" type="submit">Confirm</button>
+      </div>
+    </section></div>
+  </form>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const CATS = ['Iced Coffee', 'Hot Coffee', 'Matcha', 'Frappe', 'Non-Coffee', 'Fritz & Fizz'];
+let imageData = '';
+
+CATS.forEach(c => $('category').insertAdjacentHTML('beforeend', `<option>${esc(c)}</option>`));
+$('desc').addEventListener('input', () => $('count').textContent = $('desc').value.length);
+$('tile').addEventListener('click', () => $('file').click());
+
+/* Shrinks the chosen picture to max 900px and converts it to JPEG before it is sent to the server. */
+$('file').addEventListener('change', () => {
+  const f = $('file').files[0]; if (!f) return;
+  const err = $('error'); err.classList.add('d-none');
+  if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { showError('Please choose a JPG, PNG or WebP picture.'); $('file').value = ''; return; }
+  if (f.size > 12 * 1024 * 1024) { showError('That picture is too large (max 12 MB).'); $('file').value = ''; return; }
+  const url = URL.createObjectURL(f), im = new Image();
+  im.onload = () => {
+    const s = Math.min(1, 900 / Math.max(im.width, im.height)), cv = document.createElement('canvas');
+    cv.width = Math.round(im.width * s); cv.height = Math.round(im.height * s);
+    const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height); ctx.drawImage(im, 0, 0, cv.width, cv.height);
+    imageData = cv.toDataURL('image/jpeg', 0.85); URL.revokeObjectURL(url);
+    $('preview').src = imageData; $('preview').classList.remove('d-none'); $('placeholder').classList.add('d-none'); $('swap').classList.remove('d-none');
+  };
+  im.onerror = () => { showError('That file could not be read as a picture.'); URL.revokeObjectURL(url); };
+  im.src = url;
+});
+
+function showError(msg) { const e = $('error'); e.textContent = msg; e.classList.remove('d-none'); e.scrollIntoView({ block: 'nearest' }); }
+
+$('form').addEventListener('submit', async (e) => {
+  e.preventDefault(); $('error').classList.add('d-none');
+  const name = $('name').value.trim(), price = $('price').value, category = $('category').value;
+  if (!name) return showError('Please enter the item name.');
+  if (price === '' || Number(price) < 0) return showError('Please enter a valid price.');
+  if (!category) return showError('Please choose a category.');
+  $('confirm').disabled = true;
+  try {
+    const data = { name, price, category, description: $('desc').value.trim() };
+    if (imageData) data.image = imageData;
+    await API.post('/api/admin/menu', data);
+    sessionStorage.setItem('menuCat', category);
+    sessionStorage.setItem('menuAdded', name);
+    location.href = 'admin.html#menu';
+  } catch (ex) {
+    if (ex.status === 401 || ex.status === 403) location.href = 'login.html';
+    else { showError(ex.message); $('confirm').disabled = false; }
+  }
+});
+
+requireUser('admin');
+</script>
+</body></html>
